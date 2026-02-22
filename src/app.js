@@ -12,5 +12,7 @@ app.use("/api/ngo", require("./routes/ngo.routes"));
 app.use("/api/need", require("./routes/need.routes"));
 app.use("/api/donation", require("./routes/donation.routes"));
 app.use("/api/admin", require("./routes/admin.routes"));
+app.use("/api/opportunity", require("./routes/opportunity.routes"));
+app.use("/api/application", require("./routes/application.routes"));
 
 module.exports = app;
