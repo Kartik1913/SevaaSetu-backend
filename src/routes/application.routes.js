@@ -38,4 +38,70 @@ router.post("/apply/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// NGO fetch applications for an opportunity
+router.get("/ngo/:opportunityId", authMiddleware, async (req, res) => {
+  if (req.user.role !== "ngo") {
+    return res.status(403).json({ message: "Only NGOs allowed" });
+  }
+
+  try {
+    const applications = await Application.find({
+      opportunity: req.params.opportunityId,
+    }).populate("volunteer", "firstName email").populate("opportunity", "title");
+
+    res.json(applications);
+  } catch (err) {
+    console.error("FETCH APPS ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// NGO updates application status
+router.put("/status/:applicationId", authMiddleware, async (req, res) => {
+  if (req.user.role !== "ngo") {
+    return res.status(403).json({ message: "Only NGOs allowed" });
+  }
+
+  try {
+    const { status } = req.body;
+
+    const updated = await Application.findByIdAndUpdate(
+      req.params.applicationId,
+      { status },
+      { new: true }
+    ).populate("volunteer", "firstName email");
+
+    res.json(updated);
+  } catch (err) {
+    console.error("STATUS UPDATE ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Volunteer fetch their applications
+router.get("/my", authMiddleware, async (req, res) => {
+  if (req.user.role !== "volunteer") {
+    return res.status(403).json({ message: "Only volunteers allowed" });
+  }
+
+  try {
+    const applications = await Application.find({
+      volunteer: req.user.userId,
+    })
+      .populate("opportunity", "title category location commitment")
+      .populate({
+        path: "opportunity",
+        populate: {
+          path: "ngo",
+          select: "firstName",
+        },
+      });
+
+    res.json(applications);
+  } catch (err) {
+    console.error("VOLUNTEER FETCH ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;
