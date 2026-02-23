@@ -19,7 +19,7 @@ router.post("/apply/:id", authMiddleware, async (req, res) => {
     }
 
     const existing = await Application.findOne({
-      volunteer: req.user.id,
+      volunteer: req.user.userId,
       opportunity: req.params.id,
     });
 
@@ -28,7 +28,7 @@ router.post("/apply/:id", authMiddleware, async (req, res) => {
     }
 
     const application = await Application.create({
-      volunteer: req.user.id,
+      volunteer: req.user.userId,
       opportunity: req.params.id,
     });
 

@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Opportunity = require("../models/Opportunity");
 const authMiddleware = require("../middleware/auth.middleware");
 
@@ -39,6 +40,50 @@ router.get("/list", async (req, res) => {
     .populate("ngo", "firstName ngoVerified");
 
   res.json(opportunities);
+});
+
+const Application = require("../models/Application");
+
+router.get("/my", authMiddleware, async (req, res) => {
+  if (req.user.role !== "ngo") {
+    return res.status(403).json({ message: "Only NGOs allowed" });
+  }
+
+  try {
+    const opportunities = await Opportunity.find({
+      ngo: req.user.userId,
+    });
+
+    const oppWithCounts = await Promise.all(
+      opportunities.map(async (opp) => {
+        const totalApplicants = await Application.countDocuments({
+          opportunity: opp._id,
+        });
+
+        const accepted = await Application.countDocuments({
+          opportunity: opp._id,
+          status: "accepted",
+        });
+
+        const pending = await Application.countDocuments({
+          opportunity: opp._id,
+          status: "pending",
+        });
+
+        return {
+          ...opp.toObject(),
+          totalApplicants,
+          accepted,
+          pending,
+        };
+      })
+    );
+
+    res.json(oppWithCounts);
+  } catch (err) {
+    console.error("MY OPP ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 module.exports = router;
