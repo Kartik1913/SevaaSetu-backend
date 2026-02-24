@@ -32,7 +32,21 @@ const userSchema = new mongoose.Schema(
     ngoVerified: {
       type: Boolean,
       default: false
-    }
+    },
+    logo: {
+      type: String,
+      default: "",
+    },
+
+    coverImage: {
+      type: String,
+      default: "",
+    },
+
+    city: String,
+    state: String,
+    country: String,
+    address: String,
   },
   { timestamps: true }
 );

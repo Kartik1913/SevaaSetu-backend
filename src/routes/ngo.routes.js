@@ -4,7 +4,11 @@ const authMiddleware = require("../middleware/auth.middleware");
 const allowRoles = require("../middleware/role.middleware");
 
 const router = express.Router();
+const multer = require("multer");
+const cloudinary = require("../config/cloudinary");
+const storage = multer.memoryStorage();
 
+const upload = multer({ storage });
 /**
  * ================================
  * CREATE NGO
@@ -63,12 +67,83 @@ router.get(
  */
 router.get("/list", async (req, res) => {
   try {
-    const ngos = await NGO.find({ verified: true });
+    const User = require("../models/User");
+
+    const ngos = await User.find({
+      role: "ngo",
+    }).select("firstName city category ngoVerified createdAt logo");
+
     res.json(ngos);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+router.get("/:id", async (req, res) => {
+  try {
+    const User = require("../models/User");
+    const Opportunity = require("../models/Opportunity");
+
+    const ngoUser = await User.findById(req.params.id).select(
+      "firstName description city ngoVerified createdAt role logo"
+    );
+
+    if (!ngoUser || ngoUser.role !== "ngo") {
+      return res.status(404).json({ message: "NGO not found" });
+    }
+
+    const opportunities = await Opportunity.find({
+      ngo: ngoUser._id,
+      isActive: true,
+    }).sort({ createdAt: -1 });
+
+    const totalApplications = opportunities.reduce(
+      (sum, opp) => sum + (opp.totalApplicants || 0),
+      0
+    );
+
+    res.json({
+      ngo: ngoUser,
+      opportunities,
+      totalOpportunities: opportunities.length,
+      totalApplications,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post(
+  "/upload-logo",
+  authMiddleware,
+  allowRoles("ngo"),
+  upload.single("logo"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const base64 = req.file.buffer.toString("base64");
+      const dataURI = `data:${req.file.mimetype};base64,${base64}`;
+
+      const result = await cloudinary.uploader.upload(dataURI, {
+        folder: "ngo_logos",
+      });
+
+      const User = require("../models/User");
+
+      await User.findByIdAndUpdate(req.user.userId, {
+        logo: result.secure_url,
+      });
+
+      res.json({ logo: result.secure_url });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Upload failed" });
+    }
+  }
+);
 
 module.exports = router;
 

@@ -37,7 +37,7 @@ router.post("/create", authMiddleware, async (req, res) => {
 // Public list
 router.get("/list", async (req, res) => {
   const opportunities = await Opportunity.find({ isActive: true })
-    .populate("ngo", "firstName ngoVerified");
+    .populate("ngo", "firstName ngoVerified logo");
 
   res.json(opportunities);
 });
