@@ -145,5 +145,46 @@ router.post(
   }
 );
 
+router.put(
+  "/update",
+  authMiddleware,
+  allowRoles("ngo"),
+  async (req, res) => {
+    try {
+      const User = require("../models/User");
+
+      const {
+        firstName,
+        description,
+        city,
+        category,
+        website,
+      } = req.body;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user.userId,
+        {
+          firstName,
+          description,
+          city,
+          category,
+          website,
+        },
+        { new: true }
+      ).select(
+        "firstName description city category ngoVerified logo website"
+      );
+
+      res.json({
+        message: "Profile updated successfully",
+        user: updatedUser,
+      });
+    } catch (error) {
+      console.error("NGO UPDATE ERROR:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
 module.exports = router;
 
