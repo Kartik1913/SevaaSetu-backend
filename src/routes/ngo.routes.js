@@ -97,10 +97,13 @@ router.get("/:id", async (req, res) => {
       isActive: true,
     }).sort({ createdAt: -1 });
 
-    const totalApplications = opportunities.reduce(
-      (sum, opp) => sum + (opp.totalApplicants || 0),
-      0
-    );
+    const Application = require("../models/Application");
+
+const opportunityIds = opportunities.map(opp => opp._id);
+
+const totalApplications = await Application.countDocuments({
+  opportunity: { $in: opportunityIds }
+});
 
     res.json({
       ngo: ngoUser,

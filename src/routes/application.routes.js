@@ -2,6 +2,7 @@ const express = require("express");
 const Application = require("../models/Application");
 const Opportunity = require("../models/Opportunity");
 const authMiddleware = require("../middleware/auth.middleware");
+const allowRoles = require("../middleware/role.middleware");
 
 const router = express.Router();
 
@@ -103,5 +104,36 @@ router.get("/my", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+router.get(
+  "/ngo",
+  authMiddleware,
+  allowRoles("ngo"),
+  async (req, res) => {
+    try {
+      const Opportunity = require("../models/Opportunity");
+
+      // 1️⃣ Get all opportunities of this NGO
+      const opportunities = await Opportunity.find({
+        ngo: req.user.userId,
+      }).select("_id");
+
+      const opportunityIds = opportunities.map((o) => o._id);
+
+      // 2️⃣ Get all applications for those opportunities
+      const applications = await Application.find({
+        opportunity: { $in: opportunityIds },
+      })
+        .populate("volunteer", "firstName")
+        .populate("opportunity", "title")
+        .sort({ createdAt: -1 });
+
+      res.json(applications);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
 
 module.exports = router;
