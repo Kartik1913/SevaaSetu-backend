@@ -29,8 +29,9 @@ router.put("/update", async (req, res) => {
       bio,
     } = req.body;
 
+    const userId = req.user.userId || req.user.id;
     const updatedUser = await User.findByIdAndUpdate(
-      req.user.userId,
+      userId,
       {
         firstName,
         lastName,
@@ -53,7 +54,7 @@ router.put("/update", async (req, res) => {
     });
   } catch (error) {
     console.error("VOLUNTEER UPDATE ERROR:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message || "Server error" });
   }
 });
 

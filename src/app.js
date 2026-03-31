@@ -18,5 +18,6 @@ app.use("/api/donation", require("./routes/donation.routes"));
 app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/opportunity", require("./routes/opportunity.routes"));
 app.use("/api/application", require("./routes/application.routes"));
+app.use("/api/volunteer", require("./routes/volunteer.routes"));
 
 module.exports = app;
