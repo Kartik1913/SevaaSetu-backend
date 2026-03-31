@@ -22,6 +22,7 @@ router.post("/create", authMiddleware, async (req, res) => {
       category: req.body.category,
       commitment: req.body.commitment,
       skills: req.body.skills,
+      onboarding: req.body.onboarding,
       ngo: req.user.userId,
     });
 
@@ -82,6 +83,70 @@ router.get("/my", authMiddleware, async (req, res) => {
     res.json(oppWithCounts);
   } catch (err) {
     console.error("MY OPP ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// GET single mission details for NGO dashboard
+router.get("/mission/:id", authMiddleware, async (req, res) => {
+  if (req.user.role !== "ngo") {
+    return res.status(403).json({ message: "Only NGOs allowed" });
+  }
+
+  try {
+    const opp = await Opportunity.findById(req.params.id);
+    if (!opp) return res.status(404).json({ message: "Not found" });
+
+    // Security check
+    if (opp.ngo.toString() !== req.user.userId) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    res.json(opp);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// PUT Check-in control
+router.put("/mission/:id/checkin", authMiddleware, async (req, res) => {
+  if (req.user.role !== "ngo") {
+    return res.status(403).json({ message: "Only NGOs allowed" });
+  }
+
+  try {
+    const opp = await Opportunity.findById(req.params.id);
+    if (!opp) return res.status(404).json({ message: "Not found" });
+
+    if (opp.ngo.toString() !== req.user.userId) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const { action } = req.body; // "start", "stop", or "regenerate"
+
+    if (action === "start") {
+      opp.checkInActive = true;
+      opp.checkInCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    } else if (action === "stop") {
+      opp.checkInActive = false;
+      opp.checkInCode = "";
+    } else if (action === "regenerate") {
+       opp.checkInCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    } else if (action === "end") {
+       opp.checkInActive = false;
+       opp.checkInCode = "";
+       opp.isActive = false; // Officially end the mission
+       
+       // Automatically mark anyone still "accepted" as "absent"
+       await Application.updateMany(
+         { opportunity: opp._id, status: "accepted" },
+         { $set: { status: "absent" } }
+       );
+    }
+
+    await opp.save();
+    res.json(opp);
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });

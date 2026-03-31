@@ -89,7 +89,7 @@ router.get("/my", authMiddleware, async (req, res) => {
     const applications = await Application.find({
       volunteer: req.user.userId,
     })
-      .populate("opportunity", "title category location commitment")
+      .populate("opportunity", "title category location commitment onboarding")
       .populate({
         path: "opportunity",
         populate: {
@@ -135,5 +135,37 @@ router.get(
     }
   }
 );
+
+// Volunteer QR Check-in Endpoint
+router.post("/checkin/:code", authMiddleware, async (req, res) => {
+  if (req.user.role !== "volunteer") {
+     return res.status(403).json({ message: "Only registered volunteers can check in" });
+  }
+  
+  try {
+    const opp = await Opportunity.findOne({ checkInCode: req.params.code, checkInActive: true });
+    
+    if (!opp) {
+       return res.status(404).json({ message: "Check-in is not active or the code is invalid." });
+    }
+
+    const application = await Application.findOne({
+      opportunity: opp._id,
+      volunteer: req.user.userId,
+    });
+
+    if (!application) return res.status(400).json({ message: "You have not applied for this mission." });
+    if (application.status === "completed") return res.status(400).json({ message: "You have already checked in!" });
+    if (application.status !== "accepted") return res.status(400).json({ message: "You must be officially accepted by the NGO before checking in." });
+
+    application.status = "completed";
+    await application.save();
+
+    res.json({ message: "Check-in successful!", opportunityTitle: opp.title });
+  } catch (err) {
+    console.error("CHECKIN ERROR", err);
+    res.status(500).json({ message: "Server error during check-in" });
+  }
+});
 
 module.exports = router;

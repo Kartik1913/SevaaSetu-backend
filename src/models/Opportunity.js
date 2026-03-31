@@ -34,9 +34,23 @@ const opportunitySchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    onboarding: {
+      locationUrl: String,
+      dateTime: Date,
+      contactPerson: String,
+      instructions: String,
+      whatsappGroup: String,
+    },
     isActive: {
       type: Boolean,
       default: true,
+    },
+    checkInActive: {
+      type: Boolean,
+      default: false,
+    },
+    checkInCode: {
+      type: String,
     },
   },
   { timestamps: true }

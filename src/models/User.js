@@ -47,6 +47,12 @@ const userSchema = new mongoose.Schema(
     state: String,
     country: String,
     address: String,
+    
+    // Additional Profile Fields (for gamification & better UI)
+    skills: { type: [String], default: [] },
+    interests: { type: [String], default: [] },
+    availability: { type: String, default: "" },
+    bio: { type: String, default: "" },
 
     website: String,
   },
