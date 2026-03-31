@@ -113,20 +113,18 @@ router.get(
     try {
       const Opportunity = require("../models/Opportunity");
 
-      // 1️⃣ Get all opportunities of this NGO
-      const opportunities = await Opportunity.find({
+      // Single query: get opportunity IDs, then fetch all applications in one go
+      const opportunityIds = await Opportunity.find({
         ngo: req.user.userId,
-      }).select("_id");
+      }).distinct("_id");
 
-      const opportunityIds = opportunities.map((o) => o._id);
-
-      // 2️⃣ Get all applications for those opportunities
       const applications = await Application.find({
         opportunity: { $in: opportunityIds },
       })
         .populate("volunteer", "firstName")
         .populate("opportunity", "title")
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
       res.json(applications);
     } catch (err) {

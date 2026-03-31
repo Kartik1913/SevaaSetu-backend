@@ -56,23 +56,41 @@ router.get("/my", authMiddleware, async (req, res) => {
       ngo: req.user.userId,
     });
 
-    const oppWithCounts = await Promise.all(
-      opportunities.map(async (opp) => {
-        // Parallelize MongoDB Queries to massively reduce loop wait time
-        const [totalApplicants, accepted, pending] = await Promise.all([
-          Application.countDocuments({ opportunity: opp._id }),
-          Application.countDocuments({ opportunity: opp._id, status: "accepted" }),
-          Application.countDocuments({ opportunity: opp._id, status: "pending" })
-        ]);
+    // Single aggregation query replaces N×3 individual countDocuments calls
+    const opportunityIds = opportunities.map(opp => opp._id);
+    
+    const counts = await Application.aggregate([
+      { $match: { opportunity: { $in: opportunityIds } } },
+      {
+        $group: {
+          _id: "$opportunity",
+          totalApplicants: { $sum: 1 },
+          accepted: {
+            $sum: { $cond: [{ $eq: ["$status", "accepted"] }, 1, 0] }
+          },
+          pending: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] }
+          }
+        }
+      }
+    ]);
 
-        return {
-          ...opp.toObject(),
-          totalApplicants,
-          accepted,
-          pending,
-        };
-      })
-    );
+    // Build a quick lookup map from the aggregation results
+    const countMap = {};
+    counts.forEach(c => {
+      countMap[c._id.toString()] = {
+        totalApplicants: c.totalApplicants,
+        accepted: c.accepted,
+        pending: c.pending,
+      };
+    });
+
+    const oppWithCounts = opportunities.map(opp => ({
+      ...opp.toObject(),
+      totalApplicants: countMap[opp._id.toString()]?.totalApplicants || 0,
+      accepted: countMap[opp._id.toString()]?.accepted || 0,
+      pending: countMap[opp._id.toString()]?.pending || 0,
+    }));
 
     res.json(oppWithCounts);
   } catch (err) {
