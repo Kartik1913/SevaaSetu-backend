@@ -57,19 +57,12 @@ router.get("/my", authMiddleware, async (req, res) => {
 
     const oppWithCounts = await Promise.all(
       opportunities.map(async (opp) => {
-        const totalApplicants = await Application.countDocuments({
-          opportunity: opp._id,
-        });
-
-        const accepted = await Application.countDocuments({
-          opportunity: opp._id,
-          status: "accepted",
-        });
-
-        const pending = await Application.countDocuments({
-          opportunity: opp._id,
-          status: "pending",
-        });
+        // Parallelize MongoDB Queries to massively reduce loop wait time
+        const [totalApplicants, accepted, pending] = await Promise.all([
+          Application.countDocuments({ opportunity: opp._id }),
+          Application.countDocuments({ opportunity: opp._id, status: "accepted" }),
+          Application.countDocuments({ opportunity: opp._id, status: "pending" })
+        ]);
 
         return {
           ...opp.toObject(),
@@ -147,6 +140,42 @@ router.put("/mission/:id/checkin", authMiddleware, async (req, res) => {
     await opp.save();
     res.json(opp);
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// PUT Edit Mission details
+router.put("/edit/:id", authMiddleware, async (req, res) => {
+  if (req.user.role !== "ngo") {
+    return res.status(403).json({ message: "Only NGOs allowed" });
+  }
+
+  try {
+    const opp = await Opportunity.findById(req.params.id);
+    if (!opp) return res.status(404).json({ message: "Not found" });
+
+    if (opp.ngo.toString() !== req.user.userId) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Update allowable fields
+    const { title, description, location, category, commitment, skills, onboarding } = req.body;
+    
+    if (title) opp.title = title;
+    if (description) opp.description = description;
+    if (location) opp.location = location;
+    if (category) opp.category = category;
+    if (commitment) opp.commitment = commitment;
+    if (skills) opp.skills = skills;
+    if (onboarding) opp.onboarding = onboarding;
+
+    await opp.save();
+    
+    // Send back fully populated opportunity just in case frontend needs it (though it might just need basic fields)
+    res.json(opp);
+  } catch (err) {
+    console.error("EDIT ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

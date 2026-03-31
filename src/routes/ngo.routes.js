@@ -71,7 +71,7 @@ router.get("/list", async (req, res) => {
 
     const ngos = await User.find({
       role: "ngo",
-    }).select("firstName city category ngoVerified createdAt logo");
+    }).select("firstName description city category ngoVerified createdAt logo");
 
     res.json(ngos);
   } catch (error) {
