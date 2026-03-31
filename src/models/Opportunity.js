@@ -28,6 +28,7 @@ const opportunitySchema = new mongoose.Schema(
     },
 
     skills: [String],
+    needs: [String],
 
     ngo: {
       type: mongoose.Schema.Types.ObjectId,

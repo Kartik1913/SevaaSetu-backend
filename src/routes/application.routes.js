@@ -89,7 +89,7 @@ router.get("/my", authMiddleware, async (req, res) => {
     const applications = await Application.find({
       volunteer: req.user.userId,
     })
-      .populate("opportunity", "title category location commitment onboarding")
+      .populate("opportunity", "title category location commitment onboarding needs skills")
       .populate({
         path: "opportunity",
         populate: {

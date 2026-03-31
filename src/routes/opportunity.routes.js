@@ -22,6 +22,7 @@ router.post("/create", authMiddleware, async (req, res) => {
       category: req.body.category,
       commitment: req.body.commitment,
       skills: req.body.skills,
+      needs: req.body.needs,
       onboarding: req.body.onboarding,
       ngo: req.user.userId,
     });
@@ -160,7 +161,7 @@ router.put("/edit/:id", authMiddleware, async (req, res) => {
     }
 
     // Update allowable fields
-    const { title, description, location, category, commitment, skills, onboarding } = req.body;
+    const { title, description, location, category, commitment, skills, needs, onboarding } = req.body;
     
     if (title) opp.title = title;
     if (description) opp.description = description;
@@ -168,6 +169,7 @@ router.put("/edit/:id", authMiddleware, async (req, res) => {
     if (category) opp.category = category;
     if (commitment) opp.commitment = commitment;
     if (skills) opp.skills = skills;
+    if (needs) opp.needs = needs;
     if (onboarding) opp.onboarding = onboarding;
 
     await opp.save();
