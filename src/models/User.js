@@ -55,6 +55,10 @@ const userSchema = new mongoose.Schema(
     bio: { type: String, default: "" },
 
     website: String,
+    
+    // Password Reset fields
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   },
   { timestamps: true }
 );
