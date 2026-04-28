@@ -4,7 +4,12 @@ const cors = require("cors");
 const app = express();
 
 
-app.use(cors());
+app.use(cors({
+  origin: true, // Allow all origins for now to troubleshoot, or list them: ["https://sevaasetu.in", "http://localhost", "capacitor://localhost"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {
